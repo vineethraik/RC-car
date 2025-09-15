@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RC Car Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            touch-action: manipulation; /* Prevent browser gestures */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+ */
+            user-select: none; /* Standard syntax */
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 80%;
+            max-width: 400px;
+        }
+        .controls input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .buttons button {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+        #startButton {
+            background-color: #28a745;
+        }
+        #startButton:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        #stopButton {
+            background-color: #dc3545;
+        }
+        #stopButton:hover:not(:disabled) {
+            background-color: #c82333;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #joystickContainer {
+            width: 200px;
+            height: 200px;
+            background-color: #e0e0e0;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            position: relative;
+            margin-top: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #joystick {
+            width: 80px;
+            height: 80px;
+            background-color: #007bff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+        #joystick.active {
+            background-color: #0056b3;
+            cursor: grabbing;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <input type="text" id="ipInput" placeholder="IP Address (e.g., 192.168.1.100)" value="192.168.4.1">
+        <input type="text" id="portInput" placeholder="Port (e.g., 8080)" value="81">
+        <div class="buttons">
+            <button id="startButton">Start</button>
+            <button id="stopButton" disabled>Stop</button>
+        </div>
+    </div>
+    <div id="joystickContainer">
+        <div id="joystick"></div>
+    </div>
+    <div id="status">Disconnected</div>
+
+    <script>
+        let ws;
+        let sendInterval;
+        let joystickData = { x: 0, y: 0 };
+        const statusDiv = document.getElementById('status');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const ipInput = document.getElementById('ipInput');
+        const portInput = document.getElementById('portInput');
+
+        const joystickContainer = document.getElementById('joystickContainer');
+        const joystick = document.getElementById('joystick');
+        let isDragging = false;
+        const containerRect = joystickContainer.getBoundingClientRect();
+        const containerCenterX = containerRect.width / 2;
+        const containerCenterY = containerRect.height / 2;
+        const maxDistance = containerRect.width / 2 - (joystick.offsetWidth / 2); // Max movement radius for the joystick
+
+        function updateJoystickPosition(clientX, clientY) {
+            const containerX = containerRect.left + window.scrollX;
+            const containerY = containerRect.top + window.scrollY;
+
+            let x = clientX - containerX - containerCenterX;
+            let y = clientY - containerY - containerCenterY;
+
+            // Limit joystick movement within the container
+            const distance = Math.sqrt(x * x + y * y);
+            if (distance > maxDistance) {
+                const angle = Math.atan2(y, x);
+                x = maxDistance * Math.cos(angle);
+                y = maxDistance * Math.sin(angle);
+            }
+
+            joystick.style.left = `${containerCenterX + x}px`;
+            joystick.style.top = `${containerCenterY + y}px`;
+
+            // Normalize x and y to a range of -100 to 100
+            joystickData.x = Math.round((x / maxDistance) * 100);
+            joystickData.y = Math.round((y / maxDistance) * 100);
+            console.log(joystickData);
+            
+        }
+
+        function resetJoystick() {
+            joystick.style.left = '50%';
+            joystick.style.top = '50%';
+            joystickData = { x: 0, y: 0 };
+            joystick.classList.remove('active');
+        }
+
+        // Mouse events
+        joystick.addEventListener('mousedown', (e) => {
+            if (startButton.disabled) { // Only allow dragging if connected
+                isDragging = true;
+                joystick.classList.add('active');
+                e.preventDefault(); // Prevent text selection
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateJoystickPosition(e.clientX, e.clientY);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                resetJoystick();
+            }
+        });
+
+        // Touch events
+        joystick.addEventListener('touchstart', (e) => {
+            if (startButton.disabled) { // Only allow dragging if connected
+                isDragging = true;
+                joystick.classList.add('active');
+                e.preventDefault(); // Prevent scrolling and other touch gestures
+            }
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                updateJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isDragging) {
+                isDragging = false;
+                resetJoystick();
+            }
+        });
+
+        startButton.addEventListener('click', () => {
+            const ip = ipInput.value;
+            const port = portInput.value;
+            if (!ip || !port) {
+                alert('Please enter both IP address and Port.');
+                return;
+            }
+
+            const wsUrl = `ws://${ip}:${port}/ws`; // Assuming WebSocket path is /ws
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                statusDiv.textContent = 'Connected';
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                ipInput.disabled = true;
+                portInput.disabled = true;
+                resetJoystick(); // Ensure joystick is centered on connect
+                sendInterval = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(joystickData));
+                    }
+                }, 100);
+            };
+
+            ws.onmessage = (event) => {
+                console.log('Message from server:', event.data);
+            };
+
+            ws.onerror = (error) => {
+                statusDiv.textContent = 'Connection Error';
+                console.error('WebSocket Error:', error);
+                stopConnection();
+            };
+
+            ws.onclose = () => {
+                statusDiv.textContent = 'Disconnected';
+                stopConnection();
+            };
+        });
+
+        stopButton.addEventListener('click', stopConnection);
+
+        function stopConnection() {
+            if (ws) {
+                ws.close();
+            }
+            clearInterval(sendInterval);
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            ipInput.disabled = false;
+            portInput.disabled = false;
+            resetJoystick(); // Reset joystick position and data on disconnect
+            statusDiv.textContent = 'Disconnected';
+        }
+
+        // Initial state
+        stopButton.disabled = true;
+        resetJoystick(); // Ensure joystick is centered initially
+    </script>
+</body>
+</html>
