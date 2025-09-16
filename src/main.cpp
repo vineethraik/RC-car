@@ -16,7 +16,48 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 #define MA1 33 //27
 #define MA2 25 //14
 
-#define threshold 40
+#define INPUT_MIN -100
+#define INPUT_MAX 100
+#define OUTPUT_MAX 255
+#define DEADZONE 5
+
+void xy_to_lr(int x, int y, float *pwmA, float *pwmB, int *ma1, int *ma2, int *mb1, int *mb2) {
+int speed = max(abs(x),abs(y));
+
+*pwmA = (speed * 255.0)/100.0;
+*pwmB = (speed * 255.0)/100.0;
+if(y<0){
+  *ma1 = 1;
+  *ma2 = 0;
+  *mb1 = 1;
+  *mb2 = 0;
+}else{
+  *ma1 = 0;
+  *ma2 = 1;
+  *mb1 = 0;
+  *mb2 = 1;
+}
+
+if(x<0){
+  int uX = abs(x) - 50;
+  *pwmA = (*pwmA) * (abs(uX)/50.0);
+  if (uX < 0)
+  {
+    *ma1 = !*ma1;
+    *ma2 = !*ma2;
+  }
+}else{
+  int uX = abs(x) - 50;
+  *pwmB = (*pwmB) * (abs(uX) / 50.0);
+
+  if (uX > 0)
+  {
+    *mb1 = !*mb1;
+    *mb2 = !*mb2;
+  }
+}
+
+};
 
 void handleRoot()
 {
@@ -27,74 +68,77 @@ void handleMotor(int x,  int y){
     int ma1 = 0,ma2=0,mb1=0,mb2=0;
     float pwmA=0.0,pwmB=0.0;
 
-    if (x < -threshold)
-    {
-      pwmA = (-x)*1.0;
-      ma1 = 0;
-      ma2 = 1;
-      pwmB = -x * 1.0;
-      mb1 = 1;
-      mb2 = 0;
-    }
-    if (x >threshold)
-    {
-      pwmA = x * 1.0;
-      ma1 = 1;
-      ma2 = 0;
-      pwmB = x * 1.0;
-      mb1 = 0;
-      mb2 = 1;
-    }
-    if (y < -threshold)
-    {
-      pwmA = -y * 1.0;
-      ma1 = 1;
-      ma2 = 0;
-      pwmB = -y * 1.0;
-      mb1 = 1;
-      mb2 = 0;
-    }
-    if (y > threshold)
-    {
-      pwmA = y * 1.0;
-      ma1 = 0;
-      ma2 = 1;
-      pwmB = y * 1.0;
-      mb1 = 0;
-      mb2 = 1;
-    }
+    xy_to_lr(x,y,&pwmA,&pwmB,&ma1,&ma2,&mb1,&mb2);
 
-    
+        // if (x < -threshold)
+        // {
+        //   pwmA = (-x)*1.0;
+        //   ma1 = 0;
+        //   ma2 = 1;
+        //   pwmB = -x * 1.0;
+        //   mb1 = 1;
+        //   mb2 = 0;
+        // }
+        // if (x >threshold)
+        // {
+        //   pwmA = x * 1.0;
+        //   ma1 = 1;
+        //   ma2 = 0;
+        //   pwmB = x * 1.0;
+        //   mb1 = 0;
+        //   mb2 = 1;
+        // }
+        // if (y < -threshold)
+        // {
+        //   pwmA = -y * 1.0;
+        //   ma1 = 1;
+        //   ma2 = 0;
+        //   pwmB = -y * 1.0;
+        //   mb1 = 1;
+        //   mb2 = 0;
+        // }
+        // if (y > threshold)
+        // {
+        //   pwmA = y * 1.0;
+        //   ma1 = 0;
+        //   ma2 = 1;
+        //   pwmB = y * 1.0;
+        //   mb1 = 0;
+        //   mb2 = 1;
+        // }
 
-    // if (x < - threshold && y < - threshold)
-    // {
+        // xy_to_motors(x, y, &pwmA, &ma1, &pwmB, &mb1);
+        // ma2 = !ma1;
+        // mb2 = !mb1;
+        // if (x < - threshold && y < - threshold)
+        // {
 
-    // }
-    // else if (x > threshold && y < - threshold)
-    // {
-    // }
-    // else if (x > threshold && y > threshold)
-    // {
-    // }
-    // else if (x < - threshold && y > threshold)
-    // {
-    // }
+        // }
+        // else if (x > threshold && y < - threshold)
+        // {
+        // }
+        // else if (x > threshold && y > threshold)
+        // {
+        // }
+        // else if (x < - threshold && y > threshold)
+        // {
+        // }
 
-    // analogWrite(EnableA, (abs(pwmA)/100.0)*255.0);
-    // digitalWrite(MA1, ma1);
-    // digitalWrite(MA2, ma2);
-    // analogWrite(EnableB, (abs(pwmB)/100.0)*255.0);
-    // digitalWrite(MB1, mb1);
-    // digitalWrite(MB2, mb2);
+        // analogWrite(EnableA, (abs(pwmA)/100.0)*255.0);
+        // digitalWrite(MA1, ma1);
+        // digitalWrite(MA2, ma2);
+        // analogWrite(EnableB, (abs(pwmB)/100.0)*255.0);
+        // digitalWrite(MB1, mb1);
+        // digitalWrite(MB2, mb2);
 
-    analogWrite(EnableA, (abs(pwmA) * 255.0) / 100.0);
+        analogWrite(EnableA, pwmA);
     digitalWrite(MA1, ma1);
     digitalWrite(MA2, ma2);
-    analogWrite(EnableB, (abs(pwmB) * 255.0) / 100.0);
+    analogWrite(EnableB, pwmB);
     digitalWrite(MB1, mb1);
     digitalWrite(MB2, mb2);
 
-    Serial.printf("x:%d,y:%d,pwmA:%f,pwmB:%f,\n",x,y, pwmA,pwmB);
+    Serial.printf("x:%d,y:%d,ma1:%d,ma2:%d,mb1:%d,mb2:%d,pwmA:%f,pwmB:%f,\n", x, y, ma1, ma2, mb1, mb2, pwmA, pwmB);
 }
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
