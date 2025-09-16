@@ -10,11 +10,11 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 
 
 #define EnableA 32
-#define EnableB 33
-#define MB1 26 //26
-#define MB2 25 //25
-#define MA1 27 //27
-#define MA2 14 //14
+#define EnableB 26
+#define MB1 14 //26
+#define MB2 27 //25
+#define MA1 33 //27
+#define MA2 25 //14
 
 #define threshold 40
 
@@ -24,41 +24,42 @@ void handleRoot()
 }
 
 void handleMotor(int x,  int y){
-    int pwmA = 0, pwmB = 0, ma1 = 0,ma2=0,mb1=0,mb2=0;
+    int ma1 = 0,ma2=0,mb1=0,mb2=0;
+    float pwmA=0.0,pwmB=0.0;
 
     if (x < -threshold)
     {
-      pwmA = -x;
+      pwmA = (-x)*1.0;
       ma1 = 0;
       ma2 = 1;
-      pwmB = -x;
+      pwmB = -x * 1.0;
       mb1 = 1;
       mb2 = 0;
     }
     if (x >threshold)
     {
-      pwmA = x;
+      pwmA = x * 1.0;
       ma1 = 1;
       ma2 = 0;
-      pwmB = x;
+      pwmB = x * 1.0;
       mb1 = 0;
       mb2 = 1;
     }
     if (y < -threshold)
     {
-      pwmA = -y;
+      pwmA = -y * 1.0;
       ma1 = 1;
       ma2 = 0;
-      pwmB = -y;
+      pwmB = -y * 1.0;
       mb1 = 1;
       mb2 = 0;
     }
     if (y > threshold)
     {
-      pwmA = y;
+      pwmA = y * 1.0;
       ma1 = 0;
       ma2 = 1;
-      pwmB = y;
+      pwmB = y * 1.0;
       mb1 = 0;
       mb2 = 1;
     }
@@ -79,33 +80,43 @@ void handleMotor(int x,  int y){
     // {
     // }
 
-    analogWrite(EnableA, ((pwmA+100.0)/200.0)*255.0);
+    // analogWrite(EnableA, (abs(pwmA)/100.0)*255.0);
+    // digitalWrite(MA1, ma1);
+    // digitalWrite(MA2, ma2);
+    // analogWrite(EnableB, (abs(pwmB)/100.0)*255.0);
+    // digitalWrite(MB1, mb1);
+    // digitalWrite(MB2, mb2);
+
+    analogWrite(EnableA, (abs(pwmA) * 255.0) / 100.0);
     digitalWrite(MA1, ma1);
     digitalWrite(MA2, ma2);
-    analogWrite(EnableB, ((pwmB+100.0)/200.0)*255.0);
+    analogWrite(EnableB, (abs(pwmB) * 255.0) / 100.0);
     digitalWrite(MB1, mb1);
     digitalWrite(MB2, mb2);
+
+    Serial.printf("x:%d,y:%d,pwmA:%f,pwmB:%f,\n",x,y, pwmA,pwmB);
 }
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 {
-  Serial.printf("webSocketEvent %u\n", num);
-  Serial.printf("type: %u\n", type);
-  Serial.printf("length: %u\n", length);
+  // Serial.printf("webSocketEvent %u\n", num);
+  // Serial.printf("type: %u\n", type);
+  // Serial.printf("length: %u\n", length);
   // Serial.printf("payload: %s\n", payload);
   switch (type)
   {
   case WStype_DISCONNECTED:
-    Serial.printf("[%u] Disconnected!\n", num);
+    // Serial.printf("[%u] Disconnected!\n", num);
     break;
   case WStype_CONNECTED:
   {
     IPAddress ip = webSocket.remoteIP(num);
-    Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+    // Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
   }
   break;
   case WStype_TEXT:
-    {Serial.printf("[%u] get Text: %s\n", num, payload);
+    {
+      // Serial.printf("[%u] get Text: %s\n", num, payload);
     JsonDocument doc;
     deserializeJson(doc, payload);
     int x = doc["x"];
@@ -113,7 +124,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
     handleMotor(x, y);}
     break;
   case WStype_BIN:
-    Serial.printf("[%u] get binary length: %u\n", num, length);
+    // Serial.printf("[%u] get binary length: %u\n", num, length);
     break;
   }
   // delete [] payload;
@@ -138,15 +149,21 @@ void setup()
 
   // while (WiFi.status() != WL_CONNECTED)
   // {
-    delay(1000);
-  //   Serial.println(".");
-  // }
-  Serial.println(WiFi.localIP());
+    // delay(1000);
+    // analogWrite(EnableA, 255);
+    // digitalWrite(MA1, 1);
+    // digitalWrite(MA2, 0);
+    // analogWrite(EnableB, 255);
+    // digitalWrite(MB1, 1);
+    // digitalWrite(MB2, 0);
+    //   Serial.println(".");
+    // }
+    Serial.println(WiFi.localIP());
 
-  server.on("/", handleRoot);
-  server.begin();
-  webSocket.begin();
-  webSocket.onEvent(webSocketEvent);
+    server.on("/", handleRoot);
+    server.begin();
+    webSocket.begin();
+    webSocket.onEvent(webSocketEvent);
 }
 
 void loop(
