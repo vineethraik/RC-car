@@ -61,6 +61,13 @@
         #stopButton:hover:not(:disabled) {
             background-color: #c82333;
         }
+        #oacButton {
+            background-color: #007bff; /* Default off state color */
+        }
+        #oacButton.active {
+            background-color: #ffc107; /* On state color */
+            color: #333;
+        }
         button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
@@ -107,6 +114,7 @@
         <div class="buttons">
             <button id="startButton">Start</button>
             <button id="stopButton" disabled>Stop</button>
+            <button id="oacButton" disabled>OAC</button>
         </div>
     </div>
     <div id="joystickContainer">
@@ -123,6 +131,8 @@
         const stopButton = document.getElementById('stopButton');
         const ipInput = document.getElementById('ipInput');
         const portInput = document.getElementById('portInput');
+        const oacButton = document.getElementById('oacButton');
+        let oacState = false; // Initial state for OAC button
 
         const joystickContainer = document.getElementById('joystickContainer');
         const joystick = document.getElementById('joystick');
@@ -160,7 +170,7 @@
         function resetJoystick() {
             joystick.style.left = '50%';
             joystick.style.top = '50%';
-            joystickData = { x: 0, y: 0 };
+            joystickData = {type:0, x: 0, y: 0 };
             joystick.classList.remove('active');
         }
 
@@ -232,6 +242,7 @@
                         ws.send(JSON.stringify(joystickData));
                     }
                 }, 100);
+                oacButton.disabled = false;
             };
 
             ws.onmessage = (event) => {
@@ -261,12 +272,33 @@
             stopButton.disabled = true;
             ipInput.disabled = false;
             portInput.disabled = false;
+            oacButton.disabled = true;
+            oacState = false; // Reset OAC state on disconnect
+            oacButton.classList.remove('active'); // Remove active class
             resetJoystick(); // Reset joystick position and data on disconnect
             statusDiv.textContent = 'Disconnected';
         }
 
+        oacButton.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                oacState = !oacState; // Toggle state
+                if (oacState) {
+                    oacButton.classList.add('active');
+                } else {
+                    oacButton.classList.remove('active');
+                }
+                ws.send(JSON.stringify({ type: 1, value: oacState }));
+                console.log('OAC button toggled, data sent:', oacState);
+            } else {
+                console.log('WebSocket not open. Cannot send OAC button data.');
+            }
+        });
+
         // Initial state
         stopButton.disabled = true;
+        oacButton.disabled = true;
+        oacState = false; // Ensure initial state is off
+        oacButton.classList.remove('active'); // Ensure no active class initially
         resetJoystick(); // Ensure joystick is centered initially
     </script>
 </body>
