@@ -239,81 +239,6 @@ void stopCar()
   ledcWrite(CH_B, 0);
 }
 
-long getDistance()
-{
-  digitalWrite(TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG, LOW);
-
-  long duration = pulseIn(ECHO, HIGH, 30000); // timeout 30ms (~5m)
-  if (duration == 0)
-    return 222;                         // no echo
-  long distance = duration * 0.034 / 2; // in cm
-  return distance;
-}
-
-void forward(int speed = 200)
-{
-
-  Serial.println("forword");
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void backward(int speed = 200)
-{
-  Serial.println("backword");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, HIGH);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, HIGH);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void leftTurn(int speed = 200)
-{
-  Serial.println("left");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, HIGH);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void rightTurn(int speed = 200)
-{
-  Serial.println("right");
-
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, HIGH);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void stopCar()
-{
-  Serial.println("stop");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, 0);
-  ledcWrite(CH_B, 0);
-}
-
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 {
   // Serial.printf("webSocketEvent %u\n", num);
@@ -429,8 +354,10 @@ void setup()
   Serial.println("Motor sanity check done");
 }
 
-void sdelay(int ms){
-  for(int i=0;i<ms;i+=10){
+void sdelay(int ms)
+{
+  for (int i = 0; i < ms; i += 10)
+  {
     delay(10);
     server.handleClient();
     webSocket.loop();
@@ -476,7 +403,7 @@ void loop(
     else
     {
       // forward(200); // clear path
-      handleMotor(0,-100);
+      handleMotor(0, -100);
     }
   }
 }
