@@ -429,11 +429,9 @@ void setup()
   Serial.println("Motor sanity check done");
 }
 
-void sdelay(int ms)
-{
-  for (int i = 0; i < ms; i += 10)
-  {
-    delay(1);
+void sdelay(int ms){
+  for(int i=0;i<ms;i+=10){
+    delay(10);
     server.handleClient();
     webSocket.loop();
   }
@@ -453,7 +451,7 @@ void loop(
     Serial.println(" cm");
 
     // Ignore noise below 5 cm and above 200 cm
-    if (distance > 5 && distance < 20)
+    if (distance > 2 && distance < 20)
     {
       // stopCar();
       handleMotor(0, 0);
@@ -462,7 +460,7 @@ void loop(
       // backward(180);
       handleMotor(0, 50);
 
-      sdelay(1500);
+      sdelay(750);
       // stopCar();
       handleMotor(0, 0);
 
@@ -470,7 +468,7 @@ void loop(
       // leftTurn(180); // try left turn
       handleMotor(-50, 0);
 
-      sdelay(1000);
+      sdelay(500);
       // stopCar();
       handleMotor(0, 0);
       sdelay(500);
@@ -478,7 +476,7 @@ void loop(
     else
     {
       // forward(200); // clear path
-      handleMotor(0, -50);
+      handleMotor(0,-100);
     }
   }
 }
