@@ -19,7 +19,7 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 #define INPUT_MIN -100
 #define INPUT_MAX 100
 #define OUTPUT_MAX 255
-#define DEADZONE 5
+#define DEADZONE 20
 
 void xy_to_lr(int x, int y, float *pwmA, float *pwmB, int *ma1, int *ma2, int *mb1, int *mb2) {
 int speed = max(abs(x),abs(y));
@@ -41,7 +41,7 @@ if(y<0){
 if(x<0){
   int uX = abs(x) - 50;
   *pwmA = (*pwmA) * (abs(uX)/50.0);
-  if (uX < 0)
+  if (uX >= 0)
   {
     *ma1 = !*ma1;
     *ma2 = !*ma2;
@@ -50,7 +50,7 @@ if(x<0){
   int uX = abs(x) - 50;
   *pwmB = (*pwmB) * (abs(uX) / 50.0);
 
-  if (uX > 0)
+  if (uX >= 0)
   {
     *mb1 = !*mb1;
     *mb2 = !*mb2;
