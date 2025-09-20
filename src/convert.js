@@ -16,7 +16,7 @@ fs.readFile(htmlFilePath, 'utf8', (err, data) => {
         .replace(/\n/g, '\\n') // Escape newlines
         .replace(/\r/g, ''); // Remove carriage returns
 
-    const arduinoString = `const char* htmlContent = "${escapedHtml}";`;
+    const arduinoString = `"${escapedHtml}"`;
 
     fs.writeFile(outputFilePath, arduinoString, 'utf8', (err) => {
         if (err) {
