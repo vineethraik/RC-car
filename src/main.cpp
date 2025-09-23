@@ -3,9 +3,12 @@
 #include <WebSocketsServer.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
+#include "telnet.h"
 
 WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
+telnet t;
 
 #define EnableA 32
 #define EnableB 26
@@ -24,6 +27,9 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 #define INPUT_MAX 100
 #define OUTPUT_MAX 255
 #define DEADZONE 20
+
+int irPins[8] = {36, 39, 34, 35, 12, 13, 4, 15};
+bool irState[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 void xy_to_lr(int x, int y, float *pwmA, float *pwmB, int *ma1, int *ma2, int *mb1, int *mb2)
 {
@@ -69,12 +75,75 @@ void xy_to_lr(int x, int y, float *pwmA, float *pwmB, int *ma1, int *ma2, int *m
   }
 };
 
+int result[2];
+// String get_xy_from_n_array(int n, bool *n_array)
+// {
+//   int midpoint = (n + 1) / 2;
+//   int ac = 0;
+//   int max = 0;
+//   for (int i = 0; i < sizeof(n_array) / sizeof(n_array[0]); i++)
+//   {
+//     if (n_array[i])
+//     {
+//       ac += i + 1 - midpoint;
+//     }
+//     if (i + 1 > midpoint)
+//     {
+//       max += i + 1 - midpoint;
+//     }
+//   }
+
+//   int x = 0, y = 0;
+//   int speed_multiplier = 30;
+
+//   x = (int)(((float)ac / (float)max) * speed_multiplier);
+//   y = -speed_multiplier + abs(x);
+//   JsonDocument doc;
+//   doc["x"] = x;
+//   doc["y"] = y;
+//   String result;
+//   serializeJson(doc, result);
+//   Serial.println(result);
+
+//   return result;
+//}
+
+String get_xy_from_n_array(int n, bool *n_array)
+{
+  int midpoint = (n + 1) / 2;
+  int ac = 0;
+  int max = 0;
+  for (int i = 0; i<n; i++)
+  {
+    if (!n_array[i])
+    {
+      ac += i + 1 - midpoint;
+    }
+    if (i + 1 > midpoint)
+    {
+      max += i + 1 - midpoint;
+    }
+  }
+  int x = 0, y = 0;
+  max=max==0?1:max;
+  int speed_multiplier = 100;
+  x = (int)(((float)ac / (float)max) * speed_multiplier);
+  y =-30;
+  JsonDocument doc;
+  doc["x"] = x;
+  doc["y"] = y;
+  String result;
+  serializeJson(doc, result);
+  // Serial.println(result);
+  return result;
+}
 enum codeTypes
 {
   JOYSTICK,
-  OAC
+  OAC,
+  LINE_FOLLOWER
 };
-int codeType = JOYSTICK;
+int codeType = LINE_FOLLOWER;
 enum packetType
 {
   JOYSTICKPACKET,
@@ -161,7 +230,7 @@ void handleMotor(int x, int y)
   digitalWrite(MB1, mb1);
   digitalWrite(MB2, mb2);
 
-  Serial.printf("x:%d,y:%d,ma1:%d,ma2:%d,mb1:%d,mb2:%d,pwmA:%f,pwmB:%f,\n", x, y, ma1, ma2, mb1, mb2, pwmA, pwmB);
+  // Serial.printf("x:%d,y:%d,ma1:%d,ma2:%d,mb1:%d,mb2:%d,pwmA:%f,pwmB:%f,\n", x, y, ma1, ma2, mb1, mb2, pwmA, pwmB);
 }
 
 long getDistance()
@@ -177,66 +246,6 @@ long getDistance()
     return 222;                         // no echo
   long distance = duration * 0.034 / 2; // in cm
   return distance;
-}
-
-void forward(int speed = 200)
-{
-
-  Serial.println("forword");
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void backward(int speed = 200)
-{
-  Serial.println("backword");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, HIGH);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, HIGH);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void leftTurn(int speed = 200)
-{
-  Serial.println("left");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, HIGH);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void rightTurn(int speed = 200)
-{
-  Serial.println("right");
-
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, HIGH);
-  ledcWrite(CH_A, speed);
-  ledcWrite(CH_B, speed);
-}
-
-void stopCar()
-{
-  Serial.println("stop");
-
-  digitalWrite(MA1, LOW);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, LOW);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, 0);
-  ledcWrite(CH_B, 0);
 }
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
@@ -311,10 +320,10 @@ void setup()
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
 
-  ledcSetup(CH_A, 5000, 8); // channel, freq, resolution
-  ledcSetup(CH_B, 5000, 8);
-  ledcAttachPin(EnableA, CH_A);
-  ledcAttachPin(EnableB, CH_B);
+  for (int i = 0; i < sizeof(irPins) / sizeof(irPins[0]); i++)
+  {
+    pinMode(irPins[i], INPUT);
+  }
 
   // WiFi.mode(WIFI_STA);
   WiFi.mode(WIFI_AP_STA);
@@ -341,17 +350,7 @@ void setup()
   server.begin();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  Serial.println("Motor sanity check");
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, 200);
-  ledcWrite(CH_B, 200);
-  delay(2000);
-  ledcWrite(CH_A, 0);
-  ledcWrite(CH_B, 0);
-  Serial.println("Motor sanity check done");
+  t.init();
 }
 
 void sdelay(int ms)
@@ -361,14 +360,14 @@ void sdelay(int ms)
     delay(10);
     server.handleClient();
     webSocket.loop();
+    t.handle();
   }
 }
-void loop(
-
-)
+void loop()
 {
   server.handleClient();
   webSocket.loop();
+  t.handle();
 
   if (codeType == OAC)
   {
@@ -380,23 +379,18 @@ void loop(
     // Ignore noise below 5 cm and above 200 cm
     if (distance > 2 && distance < 20)
     {
-      // stopCar();
       handleMotor(0, 0);
 
       sdelay(300);
-      // backward(180);
       handleMotor(0, 50);
 
       sdelay(750);
-      // stopCar();
       handleMotor(0, 0);
 
       sdelay(200);
-      // leftTurn(180); // try left turn
       handleMotor(-50, 0);
 
       sdelay(500);
-      // stopCar();
       handleMotor(0, 0);
       sdelay(500);
     }
@@ -405,6 +399,25 @@ void loop(
       // forward(200); // clear path
       handleMotor(0, -100);
     }
+  }
+  else if (codeType == LINE_FOLLOWER)
+  {
+
+    String s = "";
+    for (int i = 0; i < sizeof(irPins) / sizeof(irPins[0]); i++)
+    {
+      irState[i] = (!digitalRead(irPins[i]));
+      s += String(irState[i]);
+    }
+    t.print(s);
+    String xy = get_xy_from_n_array(sizeof(irState) / sizeof(irState[0]), irState);
+   JsonDocument doc;
+   deserializeJson(doc,xy);
+    handleMotor(doc["x"], doc["y"]);
+    t.println(xy );
+    // sdelay(100);
+    // int x=xy[0],y=xy[1];
+    // handleMotor(xy[0], xy[1]);
   }
 }
 
