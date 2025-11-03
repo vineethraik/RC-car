@@ -68,6 +68,13 @@
             background-color: #ffc107; /* On state color */
             color: #333;
         }
+        #lfButton {
+            background-color: #17a2b8; /* Default off state color (e.g., info blue) */
+        }
+        #lfButton.active {
+            background-color: #20c997; /* On state color (e.g., success green) */
+            color: #333;
+        }
         button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
@@ -115,6 +122,7 @@
             <button id="startButton">Start</button>
             <button id="stopButton" disabled>Stop</button>
             <button id="oacButton" disabled>OAC</button>
+            <button id="lfButton" disabled>LF</button>
         </div>
     </div>
     <div id="joystickContainer">
@@ -133,6 +141,8 @@
         const portInput = document.getElementById('portInput');
         const oacButton = document.getElementById('oacButton');
         let oacState = false; // Initial state for OAC button
+        const lfButton = document.getElementById('lfButton');
+        let lfState = false; // Initial state for LF button
 
         const joystickContainer = document.getElementById('joystickContainer');
         const joystick = document.getElementById('joystick');
@@ -243,6 +253,7 @@
                     }
                 }, 100);
                 oacButton.disabled = false;
+                lfButton.disabled = false;
             };
 
             ws.onmessage = (event) => {
@@ -275,6 +286,9 @@
             oacButton.disabled = true;
             oacState = false; // Reset OAC state on disconnect
             oacButton.classList.remove('active'); // Remove active class
+            lfButton.disabled = true;
+            lfState = false; // Reset LF state on disconnect
+            lfButton.classList.remove('active'); // Remove active class
             resetJoystick(); // Reset joystick position and data on disconnect
             statusDiv.textContent = 'Disconnected';
         }
@@ -294,11 +308,29 @@
             }
         });
 
+        lfButton.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                lfState = !lfState; // Toggle state
+                if (lfState) {
+                    lfButton.classList.add('active');
+                } else {
+                    lfButton.classList.remove('active');
+                }
+                ws.send(JSON.stringify({ type: 2, value: lfState })); // Assuming type 2 for LF
+                console.log('LF button toggled, data sent:', lfState);
+            } else {
+                console.log('WebSocket not open. Cannot send LF button data.');
+            }
+        });
+
         // Initial state
         stopButton.disabled = true;
         oacButton.disabled = true;
         oacState = false; // Ensure initial state is off
         oacButton.classList.remove('active'); // Ensure no active class initially
+        lfButton.disabled = true;
+        lfState = false; // Ensure initial state is off
+        lfButton.classList.remove('active'); // Ensure no active class initially
         resetJoystick(); // Ensure joystick is centered initially
     </script>
 </body>
