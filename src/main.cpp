@@ -7,15 +7,23 @@
 WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-#define EnableA 32
-#define EnableB 26
-#define MB1 14 // 26
-#define MB2 27 // 25
-#define MA1 33 // 27
-#define MA2 25 // 14
+// #define EnableA 32
+// #define EnableB 26
+// #define MB1 14 // 26
+// #define MB2 27 // 25
+// #define MA1 33 // 27
+// #define MA2 25 // 14
+
+#define EnableA 13 // PWM
+#define EnableB 33 // PWM
+#define MB1 26
+#define MB2 25
+#define MA1 14
+#define MA2 32
 
 #define TRIG 17 // TX2 pin
 #define ECHO 5  // D5 pin
+
 
 #define CH_A 0
 #define CH_B 1
