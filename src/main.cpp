@@ -14,12 +14,12 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 // #define MA1 33 // 27
 // #define MA2 25 // 14
 
-#define EnableA 13 // PWM
-#define EnableB 33 // PWM
-#define MB1 26
-#define MB2 25
-#define MA1 14
-#define MA2 32
+#define EnableA 33 // PWM
+#define EnableB 13 // PWM
+#define MB1 14
+#define MB2 32
+#define MA1 25
+#define MA2 26
 #define STBY 27
 
 #define TRIG 17 // TX2 pin
