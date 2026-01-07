@@ -351,17 +351,17 @@ void setup()
   server.begin();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  Serial.println("Motor sanity check");
-  digitalWrite(MA1, HIGH);
-  digitalWrite(MA2, LOW);
-  digitalWrite(MB1, HIGH);
-  digitalWrite(MB2, LOW);
-  ledcWrite(CH_A, 200);
-  ledcWrite(CH_B, 200);
-  delay(2000);
-  ledcWrite(CH_A, 0);
-  ledcWrite(CH_B, 0);
-  Serial.println("Motor sanity check done");
+  // Serial.println("Motor sanity check");
+  // digitalWrite(MA1, HIGH);
+  // digitalWrite(MA2, LOW);
+  // digitalWrite(MB1, HIGH);
+  // digitalWrite(MB2, LOW);
+  // ledcWrite(CH_A, 200);
+  // ledcWrite(CH_B, 200);
+  // delay(2000);
+  // ledcWrite(CH_A, 0);
+  // ledcWrite(CH_B, 0);
+  // Serial.println("Motor sanity check done");
 }
 
 void sdelay(int ms)
