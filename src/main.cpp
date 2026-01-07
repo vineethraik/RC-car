@@ -20,10 +20,10 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 #define MB2 25
 #define MA1 14
 #define MA2 32
+#define STBY 27
 
 #define TRIG 17 // TX2 pin
 #define ECHO 5  // D5 pin
-
 
 #define CH_A 0
 #define CH_B 1
@@ -318,6 +318,8 @@ void setup()
   pinMode(MA2, OUTPUT);
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
+  pinMode(STBY, OUTPUT);
+  digitalWrite(STBY, HIGH);
 
   ledcSetup(CH_A, 5000, 8); // channel, freq, resolution
   ledcSetup(CH_B, 5000, 8);
