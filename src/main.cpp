@@ -14,16 +14,16 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 // #define MA1 33 // 27
 // #define MA2 25 // 14
 
-#define EnableA 33 // PWM
-#define EnableB 13 // PWM
-#define MB1 14
-#define MB2 32
-#define MA1 25
-#define MA2 26
-#define STBY 27
+#define EnableA 15
+#define EnableB 18
+#define MB1 17
+#define MB2 5
+#define MA1 4
+#define MA2 2
+#define STBY 16
 
-#define TRIG 17 // TX2 pin
-#define ECHO 5  // D5 pin
+// #define TRIG 17 // TX2 pin
+// #define ECHO 5  // D5 pin
 
 #define CH_A 0
 #define CH_B 1
@@ -172,20 +172,20 @@ void handleMotor(int x, int y)
   Serial.printf("x:%d,y:%d,ma1:%d,ma2:%d,mb1:%d,mb2:%d,pwmA:%f,pwmB:%f,\n", x, y, ma1, ma2, mb1, mb2, pwmA, pwmB);
 }
 
-long getDistance()
-{
-  digitalWrite(TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG, LOW);
+// long getDistance()
+// {
+//   digitalWrite(TRIG, LOW);
+//   delayMicroseconds(2);
+//   digitalWrite(TRIG, HIGH);
+//   delayMicroseconds(10);
+//   digitalWrite(TRIG, LOW);
 
-  long duration = pulseIn(ECHO, HIGH, 30000); // timeout 30ms (~5m)
-  if (duration == 0)
-    return 222;                         // no echo
-  long distance = duration * 0.034 / 2; // in cm
-  return distance;
-}
+//   long duration = pulseIn(ECHO, HIGH, 30000); // timeout 30ms (~5m)
+//   if (duration == 0)
+//     return 222;                         // no echo
+//   long distance = duration * 0.034 / 2; // in cm
+//   return distance;
+// }
 
 void forward(int speed = 200)
 {
@@ -316,8 +316,8 @@ void setup()
   pinMode(MB2, OUTPUT);
   pinMode(MA1, OUTPUT);
   pinMode(MA2, OUTPUT);
-  pinMode(TRIG, OUTPUT);
-  pinMode(ECHO, INPUT);
+  // pinMode(TRIG, OUTPUT);
+  // pinMode(ECHO, INPUT);
   pinMode(STBY, OUTPUT);
   digitalWrite(STBY, HIGH);
 
@@ -380,42 +380,43 @@ void loop(
   server.handleClient();
   webSocket.loop();
 
-  if (codeType == OAC)
-  {
-    long distance = getDistance();
-    Serial.print("Distance: ");
-    Serial.print(distance);
-    Serial.println(" cm");
+  // if (codeType == OAC)
+  // {
+  //   long distance = getDistance();
+  //   Serial.print("Distance: ");
+  //   Serial.print(distance);
+  //   Serial.println(" cm");
 
-    // Ignore noise below 5 cm and above 200 cm
-    if (distance > 2 && distance < 20)
-    {
-      // stopCar();
-      handleMotor(0, 0);
+  //   // Ignore noise below 5 cm and above 200 cm
+  //   if (distance > 2 && distance < 20)
+  //   {
+  //     // stopCar();
+  //     handleMotor(0, 0);
 
-      sdelay(300);
-      // backward(180);
-      handleMotor(0, 50);
+  //     sdelay(300);
+  //     // backward(180);
+  //     handleMotor(0, 50);
 
-      sdelay(750);
-      // stopCar();
-      handleMotor(0, 0);
+  //     sdelay(750);
+  //     // stopCar();
+  //     handleMotor(0, 0);
 
-      sdelay(200);
-      // leftTurn(180); // try left turn
-      handleMotor(-50, 0);
+  //     sdelay(200);
+  //     // leftTurn(180); // try left turn
+  //     handleMotor(-50, 0);
 
-      sdelay(500);
-      // stopCar();
-      handleMotor(0, 0);
-      sdelay(500);
-    }
-    else
-    {
-      // forward(200); // clear path
-      handleMotor(0, -100);
-    }
-  }
+  //     sdelay(500);
+  //     // stopCar();
+  //     handleMotor(0, 0);
+  //     sdelay(500);
+  //   }
+  //   else
+  //   {
+  //     // forward(200); // clear path
+  //     handleMotor(0, -100);
+  //   }
+  // }
+
 }
 
 // put function definitions here:
