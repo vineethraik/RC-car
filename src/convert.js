@@ -1,28 +1,35 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const htmlFilePath = path.join(__dirname, 'page.html');
-const outputFilePath = path.join(__dirname, '..', 'site.txt'); // Save in the parent directory of src
+const htmlFiles = [{ name: "indexHTML", path: "page.html" }];
 
-fs.readFile(htmlFilePath, 'utf8', (err, data) => {
-    if (err) {
-        console.error('Error reading HTML file:', err);
-        return;
-    }
+const outputFilePath = path.join(__dirname, "htmlData.h");
+
+let outputContent = `#ifndef ARDUINO_H\n#define ARDUINO_H\n#include <Arduino.h>\n#endif\n\n`;
+
+htmlFiles.forEach((file) => {
+  const htmlFilePath = path.join(__dirname, file.path);
+  try {
+    const data = fs.readFileSync(htmlFilePath, "utf8");
 
     // Escape double quotes and newlines for C-style string
     const escapedHtml = data
-        .replace(/"/g, '\\"') // Escape double quotes
-        .replace(/\n/g, '\\n') // Escape newlines
-        .replace(/\r/g, ''); // Remove carriage returns
+      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/\n/g, "\\n") // Escape newlines
+      .replace(/\r/g, "") // Remove carriage returns
+      .replaceAll(/\s+/g, " "); // Remove spaces
 
     const arduinoString = `"${escapedHtml}"`;
-
-    fs.writeFile(outputFilePath, arduinoString, 'utf8', (err) => {
-        if (err) {
-            console.error('Error writing to site.txt:', err);
-            return;
-        }
-        console.log('Successfully converted page.html to Arduino string and saved to site.txt');
-    });
+    outputContent += `const String ${file.name} = F(${arduinoString});\n`;
+    console.log(`Successfully converted ${file.path} to Arduino string.`);
+  } catch (err) {
+    console.error(`Error processing ${file.path}:`, err);
+  }
 });
+
+try {
+  fs.writeFileSync(outputFilePath, outputContent, "utf8");
+  console.log("Successfully wrote all HTML data to htmlData.h");
+} catch (err) {
+  console.error("Error writing to htmlData.h:", err);
+}
