@@ -1,337 +1,949 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RC Car Control</title>
     <style>
+        :root {
+            --panel: rgba(22, 28, 35, 0.92);
+            --line: rgba(255, 255, 255, 0.12);
+            --text: #f5f8fb;
+            --muted: #9fadba;
+            --green: #35d07f;
+            --red: #ff555f;
+            --blue: #3f8cff;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            width: 100%;
+            height: 100%;
             margin: 0;
-            background-color: #f0f0f0;
-            touch-action: manipulation; /* Prevent browser gestures */
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE10+ */
-            user-select: none; /* Standard syntax */
+            overflow: hidden;
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #0f151b 0%, #18212b 55%, #101418 100%);
+            touch-action: none;
+            user-select: none;
         }
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
+
+        .chooser,
+        .rotate-message {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: none;
+            place-items: center;
+            padding: 24px;
+            text-align: center;
+            background: #101418;
+        }
+
+        .chooser.show,
+        .rotate-message.show {
+            display: grid;
+        }
+
+        .chooser-box,
+        .rotate-box {
+            width: min(520px, 100%);
+            display: grid;
+            gap: 14px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+        }
+
+        .chooser-box h2,
+        .rotate-box strong {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 0;
+        }
+
+        .chooser-box p,
+        .rotate-box span {
+            color: var(--muted);
+        }
+
+        .choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
-            width: 80%;
-            max-width: 400px;
         }
-        .controls input {
+
+        .choice-grid button {
+            height: auto;
+            min-height: 92px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--text);
+            text-align: left;
+            background: #202d38;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        .choice-grid strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 18px;
+        }
+
+        .choice-grid span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.35;
+        }
+
+        .controller-shell {
+            width: 100vw;
+            height: 100dvh;
+        }
+
+        .split-layout,
+        .round-layout {
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .split-layout.active,
+        .round-layout.active {
+            display: grid;
+        }
+
+        .split-layout {
+            min-height: 340px;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        .buttons {
-            display: flex;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto auto;
             gap: 10px;
         }
-        .buttons button {
-            flex: 1;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 50px;
-            font-size: 16px;
-            cursor: pointer;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease;
+
+        .topbar {
+            grid-column: 1 / -1;
+            min-height: 58px;
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "title"
+                "connection"
+                "fullscreen"
+                "status";
+            gap: 10px;
+            align-items: center;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
         }
-        #startButton {
-            background-color: #28a745;
+
+        h1 {
+            margin: 0;
+            font-size: clamp(18px, 2.8vw, 28px);
+            letter-spacing: 0;
+            white-space: nowrap;
+            grid-area: title;
         }
-        #startButton:hover:not(:disabled) {
-            background-color: #218838;
+
+        .connection {
+            display: grid;
+            grid-area: connection;
+            grid-template-columns: minmax(0, 1fr) 58px 72px 72px;
+            gap: 8px;
+            align-items: center;
         }
-        #stopButton {
-            background-color: #dc3545;
+
+        input,
+        button,
+        select {
+            height: 38px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            font: inherit;
         }
-        #stopButton:hover:not(:disabled) {
-            background-color: #c82333;
+
+        input,
+        select {
+            min-width: 0;
+            padding: 0 10px;
+            color: var(--text);
+            background: #0f171f;
         }
-        #oacButton {
-            background-color: #007bff; /* Default off state color */
+
+        button {
+            color: var(--text);
+            background: #25303a;
+            font-weight: 700;
         }
-        #oacButton.active {
-            background-color: #ffc107; /* On state color */
-            color: #333;
-        }
-        #lfButton {
-            background-color: #17a2b8; /* Default off state color (e.g., info blue) */
-        }
-        #lfButton.active {
-            background-color: #20c997; /* On state color (e.g., success green) */
-            color: #333;
-        }
+
         button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
+            opacity: 0.45;
         }
-        #joystickContainer {
-            width: 200px;
-            height: 200px;
-            background-color: #e0e0e0;
+
+        .connect {
+            color: #051108;
+            background: var(--green);
+            border: 0;
+        }
+
+        .disconnect {
+            background: var(--red);
+            border: 0;
+        }
+
+        .fullscreen {
+            min-width: 92px;
+            background: #2d3945;
+            grid-area: fullscreen;
+            width: 100%;
+        }
+
+        .status {
+            color: var(--muted);
+            text-align: left;
+            font-size: 12px;
+            grid-area: status;
+        }
+
+        .status strong {
+            display: block;
+            color: var(--red);
+            font-size: 15px;
+        }
+
+        .status.connected strong {
+            color: var(--green);
+        }
+
+        .pad-panel,
+        .middle-panel,
+        .round-main,
+        .round-side {
+            min-height: 0;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 16px 42px rgba(0, 0, 0, 0.3);
+        }
+
+        .pad-panel {
+            padding: 10px;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pad-title,
+        .module-title {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .dpad {
+            width: min(72vw, 280px);
+            height: min(72vw, 280px);
+            min-width: 180px;
+            min-height: 180px;
+            max-width: calc(100dvh - 110px);
+            max-height: calc(100dvh - 110px);
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .dpad.vertical .up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .dpad.vertical .down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .dpad.horizontal .left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .dpad.horizontal .right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .dpad-center {
+            grid-column: 2;
+            grid-row: 2;
             border-radius: 50%;
-            border: 2px solid #ccc;
-            position: relative;
-            margin-top: 20px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.25);
         }
-        #joystick {
-            width: 80px;
-            height: 80px;
-            background-color: #007bff;
+
+        .pad-button {
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: 0;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #33404c, #202a34);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 20px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+        }
+
+        .arrow-shape {
+            display: block;
+            width: 44%;
+            aspect-ratio: 1;
+            color: #f5f8fb;
+            background: currentColor;
+            clip-path: polygon(50% 6%, 92% 48%, 68% 48%, 68% 94%, 32% 94%, 32% 48%, 8% 48%);
+        }
+
+        .arrow-down {
+            transform: rotate(180deg);
+        }
+
+        .arrow-left,
+        .arrow-right {
+            transform: rotate(-90deg);
+        }
+
+        .arrow-left {
+            transform: rotate(-90deg);
+        }
+
+        .arrow-right {
+            transform: rotate(90deg);
+        }
+
+        .pad-button.active {
+            background: linear-gradient(180deg, #66a5ff, #2367d8);
+            transform: translateY(2px);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.28), 0 6px 12px rgba(0, 0, 0, 0.24);
+        }
+
+        .middle-panel {
+            padding: 10px;
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .module {
+            display: grid;
+            gap: 8px;
+            align-content: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(10, 16, 22, 0.55);
+        }
+
+        .slider-row {
+            display: grid;
+            grid-template-columns: 1fr 48px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            height: 34px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            accent-color: var(--blue);
+        }
+
+        .value {
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .round-layout {
+            padding: 10px;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 10px;
+        }
+
+        .round-layout .topbar {
+            min-height: 64px;
+        }
+
+        .round-main {
+            display: grid;
+            place-items: center;
+            padding: 12px;
+        }
+
+        .round-side {
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr;
+            align-content: start;
+            gap: 12px;
+        }
+
+        .round-pad {
+            width: min(78vw, 360px);
+            height: min(78vw, 360px);
+            min-width: 220px;
+            min-height: 220px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            position: relative;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .stick {
+            width: 34%;
+            height: 34%;
+            min-width: 82px;
+            min-height: 82px;
             border-radius: 50%;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #4f99ff, #2b6fd8);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
             cursor: grab;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s ease;
         }
-        #joystick.active {
-            background-color: #0056b3;
+
+        .stick.active {
             cursor: grabbing;
         }
-        #status {
-            margin-top: 20px;
-            font-size: 1.1em;
-            color: #333;
-            font-weight: bold;
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 760px) {
+            .choice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (orientation: landscape) {
+            body.controller-picked.round-mode .rotate-message.show {
+                display: grid;
+            }
+        }
+
+        @media (orientation: portrait) {
+            body.controller-picked.split-mode .rotate-message.show {
+                display: grid;
+            }
+        }
+
+        @media (orientation: landscape) and (min-width: 700px) {
+            .split-layout {
+                min-height: 300px;
+                grid-template-columns: 1fr minmax(230px, 0.82fr) 1fr;
+                grid-template-rows: auto 1fr;
+                gap: 8px;
+            }
+
+            .topbar {
+                grid-template-columns: 1fr auto auto auto;
+                grid-template-areas: "title connection fullscreen status";
+                min-height: 52px;
+                padding: 6px 8px;
+            }
+
+            .connection {
+                grid-template-columns: 120px 48px 66px 66px;
+            }
+
+            .status {
+                text-align: right;
+            }
+
+            .fullscreen {
+                min-width: 92px;
+                width: auto;
+            }
+
+            .dpad {
+                width: min(38vw, 286px);
+                height: min(38vw, 286px);
+                min-width: 190px;
+                min-height: 190px;
+                max-width: calc(100dvh - 105px);
+                max-height: calc(100dvh - 105px);
+            }
+        }
+
+        @media (orientation: portrait) and (min-width: 700px) {
+            .round-layout {
+                padding: 14px;
+                gap: 12px;
+            }
+
+            .round-side {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .round-pad {
+                width: min(72vmin, 380px);
+                height: min(72vmin, 380px);
+                min-width: 250px;
+                min-height: 250px;
+            }
+        }
+
+        @media (max-height: 430px) {
+            .split-layout {
+                min-height: 300px;
+                gap: 8px;
+            }
+
+            .topbar {
+                min-height: 52px;
+                padding: 6px 8px;
+            }
+
+            .connection {
+                grid-template-columns: 120px 48px 66px 66px;
+            }
+
+            input,
+            button,
+            select {
+                height: 34px;
+                font-size: 13px;
+            }
+
+            .module,
+            .pad-panel,
+            .round-side {
+                padding: 8px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="controls">
-        <input type="text" id="ipInput" placeholder="IP Address (e.g., 192.168.1.100)" value="192.168.4.1">
-        <input type="text" id="portInput" placeholder="Port (e.g., 8080)" value="81">
-        <div class="buttons">
-            <button id="startButton">Start</button>
-            <button id="stopButton" disabled>Stop</button>
-            <button id="oacButton" disabled>OAC</button>
-            <button id="lfButton" disabled>LF</button>
+    <div class="chooser show" id="chooser">
+        <div class="chooser-box">
+            <h2>Select Controller</h2>
+            <p>Choose one joystick style before starting control.</p>
+            <div class="choice-grid">
+                <button data-controller="round">
+                    <strong>Round Joystick</strong>
+                    <span>Portrait mode with one floating stick.</span>
+                </button>
+                <button data-controller="split">
+                    <strong>Split D-pad</strong>
+                    <span>The same bridge-course style controller in landscape.</span>
+                </button>
+            </div>
         </div>
     </div>
-    <div id="joystickContainer">
-        <div id="joystick"></div>
+
+    <div class="rotate-message" id="rotateMessage">
+        <div class="rotate-box">
+            <strong id="rotateTitle">Rotate Phone</strong>
+            <span id="rotateText">Use the correct orientation for this controller.</span>
+        </div>
     </div>
-    <div id="status">Disconnected</div>
+
+    <div class="controller-shell">
+        <main class="split-layout" id="splitLayout">
+            <header class="topbar">
+                <h1>RC Car Control</h1>
+                <div class="connection">
+                    <input type="text" id="splitIpInput" value="192.168.4.1" aria-label="IP address">
+                    <input type="text" id="splitPortInput" value="81" aria-label="Port">
+                    <button class="connect" id="splitStartButton">Start</button>
+                    <button class="disconnect" id="splitStopButton" disabled>Stop</button>
+                </div>
+                <button class="fullscreen" id="fullscreenButton">Full Screen</button>
+                <div class="status" id="splitStatusBox">
+                    <strong id="splitStatus">Disconnected</strong>
+                    WebSocket 81
+                </div>
+            </header>
+
+            <section class="pad-panel">
+                <p class="pad-title">Drive</p>
+                <div class="dpad vertical">
+                    <button class="pad-button up" data-axis="y" data-value="-100" aria-label="Front"><span class="arrow-shape arrow-up"></span></button>
+                    <div class="dpad-center"></div>
+                    <button class="pad-button down" data-axis="y" data-value="100" aria-label="Back"><span class="arrow-shape arrow-down"></span></button>
+                </div>
+            </section>
+
+            <section class="middle-panel">
+                <div class="module">
+                    <p class="module-title">Controller</p>
+                    <select id="controllerSelect">
+                        <option value="round">Round Joystick</option>
+                        <option value="split">Split D-pad</option>
+                    </select>
+                </div>
+                <div class="module">
+                    <p class="module-title">Speed</p>
+                    <div class="slider-row">
+                        <input type="range" id="splitSpeedRange" min="20" max="100" value="100">
+                        <span class="value" id="splitSpeedValue">100%</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="pad-panel">
+                <p class="pad-title">Steer</p>
+                <div class="dpad horizontal">
+                    <button class="pad-button left" data-axis="x" data-value="-100" aria-label="Left"><span class="arrow-shape arrow-left"></span></button>
+                    <div class="dpad-center"></div>
+                    <button class="pad-button right" data-axis="x" data-value="100" aria-label="Right"><span class="arrow-shape arrow-right"></span></button>
+                </div>
+            </section>
+        </main>
+
+        <main class="round-layout" id="roundLayout">
+            <header class="topbar">
+                <h1>RC Car Control</h1>
+                <div class="connection">
+                    <input type="text" id="roundIpInput" value="192.168.4.1" aria-label="IP address">
+                    <input type="text" id="roundPortInput" value="81" aria-label="Port">
+                    <button class="connect" id="roundStartButton">Start</button>
+                    <button class="disconnect" id="roundStopButton" disabled>Stop</button>
+                </div>
+                <div></div>
+                <div class="status" id="roundStatusBox">
+                    <strong id="roundStatus">Disconnected</strong>
+                    WebSocket 81
+                </div>
+            </header>
+
+            <section class="round-main">
+                <div class="round-pad" id="roundController">
+                    <div class="stick" id="joystick"></div>
+                </div>
+            </section>
+
+            <aside class="round-side">
+                <div class="module">
+                    <p class="module-title">Controller</p>
+                    <select id="roundControllerSelect">
+                        <option value="round">Round Joystick</option>
+                        <option value="split">Split D-pad</option>
+                    </select>
+                </div>
+                <div class="module">
+                    <p class="module-title">Speed</p>
+                    <div class="slider-row">
+                        <input type="range" id="roundSpeedRange" min="20" max="100" value="100">
+                        <span class="value" id="roundSpeedValue">100%</span>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
 
     <script>
+        const JOYSTICK_PACKET = 0;
+        const driveState = { type: JOYSTICK_PACKET, x: 0, y: 0, speed: 100 };
+
         let ws;
         let sendInterval;
-        let joystickData = { x: 0, y: 0 };
-        const statusDiv = document.getElementById('status');
-        const startButton = document.getElementById('startButton');
-        const stopButton = document.getElementById('stopButton');
-        const ipInput = document.getElementById('ipInput');
-        const portInput = document.getElementById('portInput');
-        const oacButton = document.getElementById('oacButton');
-        let oacState = false; // Initial state for OAC button
-        const lfButton = document.getElementById('lfButton');
-        let lfState = false; // Initial state for LF button
+        let selectedController = '';
+        let activePointerId = null;
 
-        const joystickContainer = document.getElementById('joystickContainer');
+        const chooser = document.getElementById('chooser');
+        const rotateMessage = document.getElementById('rotateMessage');
+        const rotateTitle = document.getElementById('rotateTitle');
+        const rotateText = document.getElementById('rotateText');
+        const splitLayout = document.getElementById('splitLayout');
+        const roundLayout = document.getElementById('roundLayout');
+        const roundPad = document.getElementById('roundController');
         const joystick = document.getElementById('joystick');
-        let isDragging = false;
-        const containerRect = joystickContainer.getBoundingClientRect();
-        const containerCenterX = containerRect.width / 2;
-        const containerCenterY = containerRect.height / 2;
-        const maxDistance = containerRect.width / 2 - (joystick.offsetWidth / 2); // Max movement radius for the joystick
+        const fullscreenButton = document.getElementById('fullscreenButton');
+
+        const splitUi = {
+            ip: document.getElementById('splitIpInput'),
+            port: document.getElementById('splitPortInput'),
+            start: document.getElementById('splitStartButton'),
+            stop: document.getElementById('splitStopButton'),
+            status: document.getElementById('splitStatus'),
+            statusBox: document.getElementById('splitStatusBox'),
+            speed: document.getElementById('splitSpeedRange'),
+            speedValue: document.getElementById('splitSpeedValue'),
+            controller: document.getElementById('controllerSelect')
+        };
+
+        const roundUi = {
+            ip: document.getElementById('roundIpInput'),
+            port: document.getElementById('roundPortInput'),
+            start: document.getElementById('roundStartButton'),
+            stop: document.getElementById('roundStopButton'),
+            status: document.getElementById('roundStatus'),
+            statusBox: document.getElementById('roundStatusBox'),
+            speed: document.getElementById('roundSpeedRange'),
+            speedValue: document.getElementById('roundSpeedValue'),
+            controller: document.getElementById('roundControllerSelect')
+        };
+
+        function activeUi() {
+            return selectedController === 'split' ? splitUi : roundUi;
+        }
+
+        function isConnected() {
+            return ws && ws.readyState === WebSocket.OPEN;
+        }
+
+        function setConnected(connected) {
+            [splitUi, roundUi].forEach((ui) => {
+                ui.status.textContent = connected ? 'Connected' : 'Disconnected';
+                ui.statusBox.classList.toggle('connected', connected);
+                ui.start.disabled = connected;
+                ui.stop.disabled = !connected;
+                ui.ip.disabled = connected;
+                ui.port.disabled = connected;
+                ui.controller.disabled = connected;
+            });
+        }
+
+        function syncSharedFields(sourceUi) {
+            const ip = sourceUi.ip.value.trim();
+            const port = sourceUi.port.value.trim();
+            splitUi.ip.value = ip;
+            roundUi.ip.value = ip;
+            splitUi.port.value = port;
+            roundUi.port.value = port;
+        }
+
+        function syncSpeed(value) {
+            driveState.speed = Number(value);
+            splitUi.speed.value = driveState.speed;
+            roundUi.speed.value = driveState.speed;
+            splitUi.speedValue.textContent = `${driveState.speed}%`;
+            roundUi.speedValue.textContent = `${driveState.speed}%`;
+            sendState();
+        }
+
+        function updateOrientationGate() {
+            const wrongSplit = selectedController === 'split' && window.matchMedia('(orientation: portrait)').matches;
+            const wrongRound = selectedController === 'round' && window.matchMedia('(orientation: landscape)').matches;
+            const showGate = document.body.classList.contains('controller-picked') && (wrongSplit || wrongRound);
+
+            rotateTitle.textContent = selectedController === 'round' ? 'Rotate Phone Upright' : 'Rotate Phone';
+            rotateText.textContent = selectedController === 'round'
+                ? 'Use portrait mode for the round joystick.'
+                : 'Use landscape mode for the D-pad controller.';
+            rotateMessage.classList.toggle('show', showGate);
+        }
+
+        function setController(controller) {
+            selectedController = controller;
+            document.body.classList.toggle('round-mode', controller === 'round');
+            document.body.classList.toggle('split-mode', controller === 'split');
+            splitLayout.classList.toggle('active', controller === 'split');
+            roundLayout.classList.toggle('active', controller === 'round');
+            splitUi.controller.value = controller;
+            roundUi.controller.value = controller;
+            stopMotion();
+            updateOrientationGate();
+        }
+
+        function sendState() {
+            if (isConnected()) {
+                ws.send(JSON.stringify(driveState));
+            }
+        }
+
+        function stopMotion() {
+            driveState.x = 0;
+            driveState.y = 0;
+            joystick.style.left = '50%';
+            joystick.style.top = '50%';
+            joystick.classList.remove('active');
+            document.querySelectorAll('.pad-button.active').forEach((button) => button.classList.remove('active'));
+            sendState();
+        }
+
+        function stopConnection() {
+            if (isConnected()) {
+                stopMotion();
+                ws.close();
+            }
+            clearInterval(sendInterval);
+            setConnected(false);
+            stopMotion();
+        }
+
+        function startConnection(ui) {
+            syncSharedFields(ui);
+            const ip = ui.ip.value.trim();
+            const port = ui.port.value.trim();
+            if (!ip || !port) {
+                alert('Please enter both IP address and port.');
+                return;
+            }
+
+            ws = new WebSocket(`ws://${ip}:${port}/ws`);
+            ws.onopen = () => {
+                setConnected(true);
+                sendState();
+                sendInterval = setInterval(sendState, 80);
+            };
+            ws.onerror = () => {
+                activeUi().status.textContent = 'Connection Error';
+                stopConnection();
+            };
+            ws.onclose = stopConnection;
+        }
+
+        function bindPadButton(button) {
+            const axis = button.dataset.axis;
+            const value = Number(button.dataset.value);
+            let pointerId = null;
+
+            button.addEventListener('pointerdown', (event) => {
+                if (!isConnected() || selectedController !== 'split') return;
+                event.preventDefault();
+                pointerId = event.pointerId;
+                button.setPointerCapture(pointerId);
+                driveState[axis] = value;
+                button.classList.add('active');
+                sendState();
+            });
+
+            button.addEventListener('pointerup', (event) => {
+                if (event.pointerId === pointerId) {
+                    pointerId = null;
+                    driveState[axis] = 0;
+                    button.classList.remove('active');
+                    sendState();
+                }
+            });
+
+            button.addEventListener('pointercancel', () => {
+                pointerId = null;
+                driveState[axis] = 0;
+                button.classList.remove('active');
+                sendState();
+            });
+        }
 
         function updateJoystickPosition(clientX, clientY) {
-            const containerX = containerRect.left + window.scrollX;
-            const containerY = containerRect.top + window.scrollY;
-
-            let x = clientX - containerX - containerCenterX;
-            let y = clientY - containerY - containerCenterY;
-
-            // Limit joystick movement within the container
+            const rect = roundPad.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const maxDistance = rect.width / 2 - (joystick.offsetWidth / 2);
+            let x = clientX - rect.left - centerX;
+            let y = clientY - rect.top - centerY;
             const distance = Math.sqrt(x * x + y * y);
+
             if (distance > maxDistance) {
                 const angle = Math.atan2(y, x);
                 x = maxDistance * Math.cos(angle);
                 y = maxDistance * Math.sin(angle);
             }
 
-            joystick.style.left = `${containerCenterX + x}px`;
-            joystick.style.top = `${containerCenterY + y}px`;
-
-            // Normalize x and y to a range of -100 to 100
-            joystickData.x = Math.round((x / maxDistance) * 100);
-            joystickData.y = Math.round((y / maxDistance) * 100);
-            console.log(joystickData);
-            
+            joystick.style.left = `${centerX + x}px`;
+            joystick.style.top = `${centerY + y}px`;
+            driveState.x = Math.round((x / maxDistance) * 100);
+            driveState.y = Math.round((y / maxDistance) * 100);
+            sendState();
         }
 
-        function resetJoystick() {
-            joystick.style.left = '50%';
-            joystick.style.top = '50%';
-            joystickData = {type:0, x: 0, y: 0 };
-            joystick.classList.remove('active');
+        joystick.addEventListener('pointerdown', (event) => {
+            if (!isConnected() || selectedController !== 'round') return;
+            event.preventDefault();
+            activePointerId = event.pointerId;
+            joystick.setPointerCapture(activePointerId);
+            joystick.classList.add('active');
+            updateJoystickPosition(event.clientX, event.clientY);
+        });
+
+        joystick.addEventListener('pointermove', (event) => {
+            if (event.pointerId === activePointerId) {
+                event.preventDefault();
+                updateJoystickPosition(event.clientX, event.clientY);
+            }
+        });
+
+        function releaseJoystick(event) {
+            if (event.pointerId !== activePointerId) return;
+            activePointerId = null;
+            stopMotion();
         }
 
-        // Mouse events
-        joystick.addEventListener('mousedown', (e) => {
-            if (startButton.disabled) { // Only allow dragging if connected
-                isDragging = true;
-                joystick.classList.add('active');
-                e.preventDefault(); // Prevent text selection
-            }
+        joystick.addEventListener('pointerup', releaseJoystick);
+        joystick.addEventListener('pointercancel', releaseJoystick);
+
+        document.querySelectorAll('.pad-button').forEach(bindPadButton);
+
+        [splitUi, roundUi].forEach((ui) => {
+            ui.start.addEventListener('click', () => startConnection(ui));
+            ui.stop.addEventListener('click', stopConnection);
+            ui.speed.addEventListener('input', () => syncSpeed(ui.speed.value));
+            ui.controller.addEventListener('change', () => {
+                document.body.classList.add('controller-picked');
+                setController(ui.controller.value);
+            });
         });
 
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                updateJoystickPosition(e.clientX, e.clientY);
-            }
+        document.querySelectorAll('[data-controller]').forEach((button) => {
+            button.addEventListener('click', () => {
+                chooser.classList.remove('show');
+                document.body.classList.add('controller-picked');
+                setController(button.dataset.controller);
+            });
         });
 
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                resetJoystick();
-            }
-        });
-
-        // Touch events
-        joystick.addEventListener('touchstart', (e) => {
-            if (startButton.disabled) { // Only allow dragging if connected
-                isDragging = true;
-                joystick.classList.add('active');
-                e.preventDefault(); // Prevent scrolling and other touch gestures
-            }
-        });
-
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
-                updateJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (isDragging) {
-                isDragging = false;
-                resetJoystick();
-            }
-        });
-
-        startButton.addEventListener('click', () => {
-            const ip = ipInput.value;
-            const port = portInput.value;
-            if (!ip || !port) {
-                alert('Please enter both IP address and Port.');
-                return;
-            }
-
-            const wsUrl = `ws://${ip}:${port}/ws`; // Assuming WebSocket path is /ws
-            ws = new WebSocket(wsUrl);
-
-            ws.onopen = () => {
-                statusDiv.textContent = 'Connected';
-                startButton.disabled = true;
-                stopButton.disabled = false;
-                ipInput.disabled = true;
-                portInput.disabled = true;
-                resetJoystick(); // Ensure joystick is centered on connect
-                sendInterval = setInterval(() => {
-                    if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify(joystickData));
-                    }
-                }, 100);
-                oacButton.disabled = false;
-                lfButton.disabled = false;
-            };
-
-            ws.onmessage = (event) => {
-                console.log('Message from server:', event.data);
-            };
-
-            ws.onerror = (error) => {
-                statusDiv.textContent = 'Connection Error';
-                console.error('WebSocket Error:', error);
-                stopConnection();
-            };
-
-            ws.onclose = () => {
-                statusDiv.textContent = 'Disconnected';
-                stopConnection();
-            };
-        });
-
-        stopButton.addEventListener('click', stopConnection);
-
-        function stopConnection() {
-            if (ws) {
-                ws.close();
-            }
-            clearInterval(sendInterval);
-            startButton.disabled = false;
-            stopButton.disabled = true;
-            ipInput.disabled = false;
-            portInput.disabled = false;
-            oacButton.disabled = true;
-            oacState = false; // Reset OAC state on disconnect
-            oacButton.classList.remove('active'); // Remove active class
-            lfButton.disabled = true;
-            lfState = false; // Reset LF state on disconnect
-            lfButton.classList.remove('active'); // Remove active class
-            resetJoystick(); // Reset joystick position and data on disconnect
-            statusDiv.textContent = 'Disconnected';
-        }
-
-        oacButton.addEventListener('click', () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                oacState = !oacState; // Toggle state
-                if (oacState) {
-                    oacButton.classList.add('active');
+        fullscreenButton.addEventListener('click', async () => {
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                    fullscreenButton.textContent = 'Exit Full';
                 } else {
-                    oacButton.classList.remove('active');
+                    await document.exitFullscreen();
+                    fullscreenButton.textContent = 'Full Screen';
                 }
-                ws.send(JSON.stringify({ type: 1, value: oacState }));
-                console.log('OAC button toggled, data sent:', oacState);
-            } else {
-                console.log('WebSocket not open. Cannot send OAC button data.');
+            } catch (error) {
+                fullscreenButton.textContent = 'Unavailable';
             }
         });
 
-        lfButton.addEventListener('click', () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                lfState = !lfState; // Toggle state
-                if (lfState) {
-                    lfButton.classList.add('active');
-                } else {
-                    lfButton.classList.remove('active');
-                }
-                ws.send(JSON.stringify({ type: 2, value: lfState })); // Assuming type 2 for LF
-                console.log('LF button toggled, data sent:', lfState);
-            } else {
-                console.log('WebSocket not open. Cannot send LF button data.');
-            }
+        document.addEventListener('fullscreenchange', () => {
+            fullscreenButton.textContent = document.fullscreenElement ? 'Exit Full' : 'Full Screen';
         });
 
-        // Initial state
-        stopButton.disabled = true;
-        oacButton.disabled = true;
-        oacState = false; // Ensure initial state is off
-        oacButton.classList.remove('active'); // Ensure no active class initially
-        lfButton.disabled = true;
-        lfState = false; // Ensure initial state is off
-        lfButton.classList.remove('active'); // Ensure no active class initially
-        resetJoystick(); // Ensure joystick is centered initially
+        window.addEventListener('resize', updateOrientationGate);
+
+        syncSpeed(100);
+        setConnected(false);
+        setController('round');
     </script>
 </body>
+
 </html>
